@@ -1,62 +1,67 @@
+// server.js
 const express = require('express');
-const ytdl = require('ytdl-core');
-const ytsr = require('ytsr');
+const cors = require('cors');
+const ytdl = require('@distube/ytdl-core');
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve HTML/CSS/JS
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors());
+app.use(express.static('public'));
 
-// Search API
 app.get('/api/search', async (req, res) => {
-    const query = req.query.q;
-    if (!query) return res.status(400).json({ error: 'Missing query parameter' });
+  const query = req.query.q;
+  if (!query) return res.status(400).json({ error: 'Query is required' });
 
-    try {
-        const results = await ytsr(query, { limit: 1 });
-        const video = results.items.find(item => item.type === 'video');
-        if (!video) return res.status(404).json({ error: 'No video found' });
+  const yts = await import('yt-search');
+  const result = await yts.default(query);
+  const video = result.videos[0];
+  if (!video) return res.status(404).json({ error: 'No video found' });
 
-        res.json({
-            title: video.title,
-            url: video.url,
-            thumbnail: video.bestThumbnail.url,
-            channel: video.author.name,
-            duration: video.duration,
-            views: video.views
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Search failed' });
-    }
+  res.json({
+    title: video.title,
+    url: video.url,
+    thumbnail: video.thumbnail,
+    channel: video.author.name,
+    duration: video.timestamp,
+    views: video.views
+  });
 });
 
-// Download API
 app.get('/api/download', async (req, res) => {
-    const url = req.query.url;
-    const type = req.query.type;
+  const { url, type } = req.query;
+  if (!url || !type) return res.status(400).send('Missing URL or type');
 
-    if (!url || !type) return res.status(400).send('Missing parameters');
+  try {
+    const info = await ytdl.getInfo(url);
+    const title = info.videoDetails.title.replace(/[\\/:*?"<>|]/g, '');
 
-    try {
-        const info = await ytdl.getInfo(url);
-        const title = info.videoDetails.title.replace(/[^\w\s]/gi, '');
-
-        res.setHeader('Content-Disposition', `attachment; filename="${title}.${type === 'audio' ? 'mp3' : 'mp4'}"`);
-
-        const format = type === 'audio'
-            ? ytdl.filterFormats(info.formats, 'audioonly')[0]
-            : ytdl.chooseFormat(info.formats, { quality: 'highestvideo' });
-
-        ytdl(url, { format }).pipe(res);
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Download failed');
+    if (type === 'audio') {
+      res.setHeader('Content-Disposition', `attachment; filename="${title}.mp3"`);
+      ytdl(url, { filter: 'audioonly', quality: 'highestaudio' })
+        .on('error', (err) => {
+          console.error(err);
+          res.status(500).send('Download failed');
+        })
+        .pipe(res);
+    } else if (type === 'video') {
+      res.setHeader('Content-Disposition', `attachment; filename="${title}.mp4"`);
+      ytdl(url, { quality: 'highestvideo' })
+        .on('error', (err) => {
+          console.error(err);
+          res.status(500).send('Download failed');
+        })
+        .pipe(res);
+    } else {
+      res.status(400).send('Invalid type specified');
     }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Failed to process video');
+  }
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
