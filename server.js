@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-const ytdl = require('@distube/ytdl-core');
-const yts = require('yt-search');
+const ytdl = require('ytdl-core');
+const ytsr = require('ytsr');
 const path = require('path');
 
 const app = express();
@@ -16,16 +16,18 @@ app.get('/api/search', async (req, res) => {
   if (!query) return res.status(400).json({ error: 'Missing search query' });
 
   try {
-    const result = await yts(query);
-    const video = result.videos[0];
+    const filters = await ytsr.getFilters(query);
+    const filter = filters.get('Type').get('Video');
+    const searchResults = await ytsr(filter.url, { limit: 1 });
+    const video = searchResults.items[0];
     if (!video) return res.status(404).json({ error: 'No video found' });
 
     res.json({
       title: video.title,
       url: video.url,
-      thumbnail: video.thumbnail,
+      thumbnail: video.bestThumbnail.url,
       channel: video.author.name,
-      duration: video.timestamp,
+      duration: video.duration,
       views: video.views
     });
   } catch (err) {
@@ -41,15 +43,18 @@ app.get('/api/download', async (req, res) => {
 
   try {
     const info = await ytdl.getInfo(url);
-    const title = info.videoDetails.title.replace(/[\\/:*?"<>|]/g, '');
+    const title = info.videoDetails.title.replace(/[\/\\:*?"<>|]/g, '');
 
-    res.setHeader('Content-Disposition', `attachment; filename="${title}.${type === 'audio' ? 'mp3' : 'mp4'}"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${title}.${type === 'audio' ? 'mp3' : 'mp4'}"`
+    );
 
-    const filter = type === 'audio'
+    const options = type === 'audio'
       ? { filter: 'audioonly', quality: 'highestaudio' }
-      : { filter: (f)=> f.container === 'mp4', quality: 'highestvideo' };
+      : { quality: 'highestvideo' };
 
-    ytdl(url, filter)
+    ytdl(url, options)
       .on('error', err => {
         console.error('Download error:', err);
         if (!res.headersSent) res.status(500).send('Download failed');
