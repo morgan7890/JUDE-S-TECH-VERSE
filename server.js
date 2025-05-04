@@ -8,11 +8,10 @@ const path    = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve your custom neon frontend
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// SEARCH endpoint
+// SEARCH endpoint (unchanged)
 app.get('/api/search', async (req, res) => {
   const q = req.query.q;
   if (!q) return res.status(400).json({ error: 'Missing search query' });
@@ -38,25 +37,30 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
-// DOWNLOAD endpoint
+// DOWNLOAD endpoint (enhanced)
 app.get('/api/download', (req, res) => {
   const { url, type } = req.query;
-  if (!url || !type) return res.status(400).send('Missing url or type');
-  if (!ytdl.validateURL(url)) return res.status(400).send('Invalid YouTube URL');
+  if (!url || !type) {
+    return res.status(400).send('Missing url or type');
+  }
+  if (!ytdl.validateURL(url)) {
+    return res.status(400).send('Invalid YouTube URL');
+  }
 
-  // Clean filename from URL (simple slug)
-  const id       = new URL(url).searchParams.get('v');
-  const filename = `${id}.${type === 'audio' ? 'mp3' : 'mp4'}`;
+  // Derive a safe filename from the video ID
+  const videoID = new URL(url).searchParams.get('v');
+  const filename = `${videoID}.${type === 'audio' ? 'mp3' : 'mp4'}`;
 
-  // Set headers
+  // Set response headers
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Content-Type', type === 'audio' ? 'audio/mpeg' : 'video/mp4');
 
-  // Choose options
+  // Select filter options
   const options = type === 'audio'
-    ? { filter: 'audioonly' }
-    : {}; // full video+audio
+    ? { filter: 'audioonly', quality: 'highestaudio' }
+    : { filter: format => format.container === 'mp4', quality: 'highestvideo' };
 
-  // Stream and pipe
+  // Stream and pipe directly
   const stream = ytdl(url, options);
   stream.on('error', err => {
     console.error('Stream error:', err);
