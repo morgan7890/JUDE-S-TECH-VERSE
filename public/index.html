@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>JUDE'S TECH VERSE MP3/MP4 PLAYER</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --primary-color: #00C2FF;
+      --secondary-color: #FF2D55;
+      --neon-blue: #0ff0fc;
+      --neon-pink: #ff00ff;
+      --neon-purple: #8a2be2;
+      --dark-bg: #121212;
+      --text-primary: #FFFFFF;
+      --glow-effect: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-pink);
+      --pulse-animation: pulse 2s infinite;
+    }
+    body {
+      background-color: var(--dark-bg);
+      font-family: 'Poppins', sans-serif;
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: radial-gradient(circle at 10% 20%, rgba(15,240,252,0.05) 0%, transparent 20%), radial-gradient(circle at 90% 80%, rgba(255,0,255,0.05) 0%, transparent 20%);
+    }
+    .container { max-width: 900px; margin-top: 2rem; }
+    .card { background: rgba(30,30,46,0.8); border-radius:16px; box-shadow: var(--glow-effect); backdrop-filter: blur(5px); border:1px solid rgba(15,240,252,0.2); }
+    .card-header { background: linear-gradient(90deg,var(--neon-blue),var(--neon-purple)); color:#fff; font-family:'Orbitron'; font-weight:700; text-align:center; padding:1.5rem; position:relative; }
+    @keyframes pulse { 0%,100%{opacity:0.8;}50%{opacity:1;box-shadow:0 0 15px var(--neon-blue),0 0 30px var(--neon-pink);} }
+    .app-title { font-size:2rem; font-weight:800; background: linear-gradient(90deg,#fff,var(--neon-blue)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; animation:var(--pulse-animation); }
+    .btn-boom { background:transparent; color:#fff; border:2px solid var(--neon-blue); border-radius:50px; padding:8px 20px; font-weight:600; transition:0.3s; }
+    .btn-boom:hover { background:var(--neon-blue); color:#000; box-shadow:0 0 15px var(--neon-blue),0 0 25px var(--neon-pink); }
+    .form-control { background:rgba(40,40,60,0.7); color:#fff; border:1px solid rgba(15,240,252,0.3); border-radius:50px; padding:10px 20px; }
+    footer { background:rgba(18,18,18,0.9); color:var(--neon-blue); text-align:center; padding:1.5rem 0; margin-top:2rem; font-size:0.9rem; }
+    .footer-links { display:flex; justify-content:center; gap:15px; margin-top:10px; font-size:0.8rem; }
+    .footer-links a { color:var(--neon-blue); text-decoration:none; transition:color 0.3s; }
+    .footer-links a:hover { color:var(--neon-pink); }
+  </style>
+</head>
+<body>
+  <div class="intro text-center p-4">
+    <h1 class="app-title">Jude's Tech Verse</h1>
+    <p>Welcome to the ultimate tech hub, where innovation meets creativity!</p>
+    <p>Feel free to connect with me on WhatsApp for any inquiries:</p>
+    <div class="mb-3">
+      <button class="btn-boom me-2" onclick="window.open('tel:+254725384454','_blank')">Call Jude</button>
+      <button class="btn-boom me-2" onclick="window.open('https://wa.me/+254725384454','_blank')">Chat on WhatsApp</button>
+      <button class="btn-boom" onclick="window.open('https://whatsapp.com/channel/0029VbASlwuDDmFZhzmvum1h','_blank')">Join My WhatsApp Channel</button>
+    </div>
+    <p>For more, follow <strong>Jude's Tech Verse</strong>.</p>
+  </div>
+
+  <div class="tagline text-center p-2">
+    <p>Download any kind of music here free from ads</p>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="app-title">JUDE'S TECH VERSE MP3/MP4 PLAYER</h2>
+      </div>
+      <div class="card-body">
+        <input type="text" id="searchInput" class="form-control mb-3" placeholder="Enter video or audio name...">
+        <button onclick="searchVideo()" class="btn-boom mb-3">Search</button>
+        <div id="result" class="video-card"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-links">
+      <a href="https://whatsapp.com/channel/0029VbASlwuDDmFZhzmvum1h" target="_blank">CLICK TO JOIN MY CHANNEL</a>
+      <a href="https://wa.me/+254725384454" target="_blank">Contact me on WhatsApp: +254725384454</a>
+    </div>
+    <p>© 2025 JUDE'S TECH VERSE from Meta</p>
+  </footer>
+
+  <script>
+    async function searchVideo() {
+      const query = document.getElementById('searchInput').value;
+      if (!query) return alert('Please enter a search term.');
+      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (data.error) return alert(data.error);
+      document.getElementById('result').innerHTML = `
+        <h2>${data.title}</h2>
+        <img src="${data.thumbnail}" class="video-thumbnail" alt="Thumbnail"/>
+        <p><strong>Channel:</strong> ${data.channel}</p>
+        <p><strong>Duration:</strong> ${data.duration}</p>
+        <p><strong>Views:</strong> ${data.views}</p>
+        <button onclick="download('${data.url}','audio')" class="btn-boom">Download MP3</button>
+        <button onclick="download('${data.url}','video')" class="btn-boom">Download MP4</button>
+      `;
+    }
+
+    async function download(url, type) {
+      window.open(`/api/download?url=${encodeURIComponent(url)}&type=${type}`, '_blank');
+    }
+  </script>
+</body>
+</html>
