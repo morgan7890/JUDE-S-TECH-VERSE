@@ -8,16 +8,16 @@ const path    = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Serve your custom neon frontend
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 1) Search endpoint
+// SEARCH endpoint
 app.get('/api/search', async (req, res) => {
   const q = req.query.q;
   if (!q) return res.status(400).json({ error: 'Missing search query' });
 
   try {
-    // get first video result
     const filters = await ytsr.getFilters(q);
     const filter  = filters.get('Type').get('Video');
     const results = await ytsr(filter.url, { limit: 1 });
@@ -38,42 +38,31 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
-// 2) Download endpoint
-app.get('/api/download', async (req, res) => {
+// DOWNLOAD endpoint
+app.get('/api/download', (req, res) => {
   const { url, type } = req.query;
   if (!url || !type) return res.status(400).send('Missing url or type');
+  if (!ytdl.validateURL(url)) return res.status(400).send('Invalid YouTube URL');
 
-  // Validate YouTube URL
-  if (!ytdl.validateURL(url)) {
-    return res.status(400).send('Invalid YouTube URL');
-  }
+  // Clean filename from URL (simple slug)
+  const id       = new URL(url).searchParams.get('v');
+  const filename = `${id}.${type === 'audio' ? 'mp3' : 'mp4'}`;
 
-  try {
-    // Prefetch info to get a clean title
-    const info  = await ytdl.getInfo(url);
-    const title = info.videoDetails.title.replace(/[\/\\:*?"<>|]/g, '');
+  // Set headers
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
-    // Set download headers
-    const ext = type === 'audio' ? 'mp3' : 'mp4';
-    res.setHeader('Content-Disposition', `attachment; filename="${title}.${ext}"`);
+  // Choose options
+  const options = type === 'audio'
+    ? { filter: 'audioonly' }
+    : {}; // full video+audio
 
-    // Choose filter
-    const options = type === 'audio'
-      ? { filter: 'audioonly', quality: 'highestaudio' }
-      : { filter: format => format.container === 'mp4', quality: 'highestvideo' };
-
-    // Pipe the stream
-    ytdl(url, options)
-      .on('error', err => {
-        console.error('Download stream error:', err);
-        if (!res.headersSent) res.status(500).send('Download failed');
-      })
-      .pipe(res);
-
-  } catch (err) {
-    console.error('Processing download failed:', err);
-    return res.status(500).send('Failed to process download');
-  }
+  // Stream and pipe
+  const stream = ytdl(url, options);
+  stream.on('error', err => {
+    console.error('Stream error:', err);
+    if (!res.headersSent) res.status(500).send('Download failed');
+  });
+  stream.pipe(res);
 });
 
 app.listen(PORT, () => {
