@@ -1,7 +1,6 @@
 {
   "name": "youtube-downloader",
   "version": "1.0.0",
-  "description": "JUDE'S TECH VERSE MP3/MP4 Downloader",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
