@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JUDE'S TECH VERSE MP3/MP4 PLAYER</title>
-  
+
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 
@@ -12,107 +12,77 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <style>
-    /* Neon theme */
-    body {
-      background: #0d0d0d;
-      color: #fff;
-      font-family: 'Orbitron', sans-serif;
-    }
-    h1 {
-      color: #0ff;
-      text-align: center;
-      margin-top: 20px;
-      text-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 30px #0ff;
-    }
-    .container {
-      margin-top: 40px;
-    }
-    .neon-input {
-      background: #111;
-      border: 2px solid #0ff;
-      color: #0ff;
-      border-radius: 8px;
-      padding: 10px;
-      width: 100%;
-      margin-bottom: 20px;
-      outline: none;
-    }
-    .neon-button {
-      background: #0ff;
-      color: #111;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-weight: bold;
-      text-transform: uppercase;
-      transition: 0.3s;
-    }
-    .neon-button:hover {
-      box-shadow: 0 0 20px #0ff, 0 0 40px #0ff;
-    }
-    .result-box {
-      background: #111;
-      border: 2px solid #0ff;
-      border-radius: 8px;
-      padding: 20px;
-      margin-top: 20px;
-      min-height: 200px;
-    }
+    body { background: #0d0d0d; color: #fff; font-family: 'Orbitron', sans-serif; }
+    h1 { color: #0ff; text-align: center; margin-top: 20px; text-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 30px #0ff; }
+    .container { margin-top: 40px; max-width: 700px; }
+    .neon-input { background: #111; border: 2px solid #0ff; color: #0ff; border-radius: 8px; padding: 10px; width: 100%; margin-bottom: 20px; outline: none; }
+    .neon-button { background: #0ff; color: #111; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; text-transform: uppercase; transition: 0.3s; }
+    .neon-button:hover { box-shadow: 0 0 20px #0ff, 0 0 40px #0ff; }
+    .result-box { background: #111; border: 2px solid #0ff; border-radius: 8px; padding: 20px; margin-top: 20px; min-height: 200px; }
+    .result-item { margin-bottom: 15px; padding: 10px; border: 1px solid #0ff; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+    .result-item p { margin: 0; color: #0ff; font-weight: bold; }
   </style>
 </head>
 <body>
 
-  <h1>JUDE'S TECH VERSE MP3/MP4 PLAYER</h1>
+<h1>JUDE'S TECH VERSE MP3/MP4 PLAYER</h1>
 
-  <div class="container">
-    <!-- Search -->
-    <input type="text" id="searchInput" class="neon-input" placeholder="Enter YouTube link or search query...">
-    <button class="neon-button w-100" onclick="search()">Search & Convert</button>
+<div class="container">
+  <input type="text" id="searchInput" class="neon-input" placeholder="Enter YouTube link or search query...">
+  <button class="neon-button w-100" onclick="search()">Search & Convert</button>
 
-    <!-- Results -->
-    <div class="result-box" id="results">
-      <p style="text-align:center; color:#0ff;">Your results will appear here...</p>
-    </div>
+  <div class="result-box" id="results">
+    <p style="text-align:center; color:#0ff;">Your results will appear here...</p>
   </div>
+</div>
 
-  <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+async function search() {
+  const query = document.getElementById('searchInput').value.trim();
+  const resultsDiv = document.getElementById('results');
 
-  <!-- Script to handle frontend interaction -->
-  <script>
-    function search() {
-      const query = document.getElementById('searchInput').value;
-      const resultsDiv = document.getElementById('results');
-      
-      if (!query) {
-        resultsDiv.innerHTML = '<p style="color:red; text-align:center;">Please enter a search query or link!</p>';
-        return;
-      }
+  if (!query) {
+    resultsDiv.innerHTML = '<p style="color:red; text-align:center;">Please enter a search query or link!</p>';
+    return;
+  }
 
-      resultsDiv.innerHTML = `<p style="text-align:center; color:#0ff;">Searching for: <strong>${query}</strong>...</p>`;
+  resultsDiv.innerHTML = `<p style="text-align:center; color:#0ff;">Searching for: <strong>${query}</strong>...</p>`;
 
-      // TODO: Hook this to your backend API
-      // Example: fetch('/api/search?query=' + encodeURIComponent(query))
-      //   .then(res => res.json())
-      //   .then(data => { renderResults(data); })
-      //   .catch(err => { console.error(err); resultsDiv.innerHTML = "Error fetching results"; });
+  try {
+    // Call your backend search API
+    const res = await fetch(`/api/search?query=${encodeURIComponent(query)}`);
+    const data = await res.json();
+
+    if (!data || data.length === 0) {
+      resultsDiv.innerHTML = '<p style="text-align:center; color:red;">No results found!</p>';
+      return;
     }
 
-    function renderResults(data) {
-      // Example function to display results
-      const resultsDiv = document.getElementById('results');
-      resultsDiv.innerHTML = '';
+    renderResults(data);
+  } catch (err) {
+    console.error(err);
+    resultsDiv.innerHTML = '<p style="text-align:center; color:red;">Error fetching results.</p>';
+  }
+}
 
-      data.forEach(item => {
-        const el = document.createElement('div');
-        el.innerHTML = `
-          <p>${item.title}</p>
-          <a href="${item.downloadLink}" class="neon-button">Download</a>
-        `;
-        resultsDiv.appendChild(el);
-      });
-    }
-  </script>
+function renderResults(data) {
+  const resultsDiv = document.getElementById('results');
+  resultsDiv.innerHTML = '';
+
+  data.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'result-item';
+    div.innerHTML = `
+      <p>${item.title}</p>
+      <div>
+        <a href="/api/download?url=${encodeURIComponent(item.url)}&format=mp3" class="neon-button me-2">MP3</a>
+        <a href="/api/download?url=${encodeURIComponent(item.url)}&format=mp4" class="neon-button">MP4</a>
+      </div>
+    `;
+    resultsDiv.appendChild(div);
+  });
+}
+</script>
 
 </body>
 </html>
